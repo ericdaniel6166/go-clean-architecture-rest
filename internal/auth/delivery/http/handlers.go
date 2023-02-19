@@ -2,7 +2,7 @@ package http
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
+	"github.com/opentracing/opentracing-go"
 	"go-clean-architecture-rest/config"
 	"go-clean-architecture-rest/internal/auth"
 	"go-clean-architecture-rest/internal/models"
@@ -36,22 +36,20 @@ func NewAuthHandlers(cfg *config.Config, authUC auth.UseCase, sessUC session.UCS
 // @Router /auth/register [post]
 func (h *authHandlers) Register() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		//span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Register")
-		//defer span.Finish()
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Register")
+		defer span.Finish()
 
 		user := &models.User{}
 		if err := utils.ReadRequest(c, user); err != nil {
-			//utils.LogResponseError(c, h.logger, err)
-			log.Errorf("error read request: %s", err)
+			utils.LogResponseError(c, h.logger, err)
+			//log.Errorf("error read request: %s", err)
 
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
-		//createdUser, err := h.authUC.Register(ctx, user)
-		createdUser, err := h.authUC.Register(utils.GetRequestCtx(c), user)
+		createdUser, err := h.authUC.Register(ctx, user)
 		if err != nil {
-			//utils.LogResponseError(c, h.logger, err)
-			log.Errorf("error register new user: %s", err)
+			utils.LogResponseError(c, h.logger, err)
 
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}

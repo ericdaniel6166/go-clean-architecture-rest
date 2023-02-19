@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"github.com/labstack/gommon/log"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"go-clean-architecture-rest/config"
 	"go-clean-architecture-rest/internal/auth"
@@ -29,8 +30,8 @@ func NewAuthUseCase(cfg *config.Config, authRepo auth.Repository, redisRepo auth
 
 // Register Create new user
 func (u *authUC) Register(ctx context.Context, user *models.User) (*models.UserWithToken, error) {
-	//span, ctx := opentracing.StartSpanFromContext(ctx, "authUC.Register")
-	//defer span.Finish()
+	span, ctx := opentracing.StartSpanFromContext(ctx, "authUC.Register")
+	defer span.Finish()
 
 	existsUser, err := u.authRepo.FindByEmail(ctx, user)
 	if existsUser != nil || err == nil {
