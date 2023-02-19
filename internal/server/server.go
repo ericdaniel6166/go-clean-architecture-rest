@@ -39,46 +39,47 @@ func NewServer(cfg *config.Config, db *sqlx.DB, redisClient *redis.Client, awsS3
 }
 
 func (s *Server) Run() error {
-	if s.cfg.Server.SSL {
-		if err := s.MapHandlers(s.echo); err != nil {
-			return err
-		}
-
-		s.echo.Server.ReadTimeout = time.Second * s.cfg.Server.ReadTimeout
-		s.echo.Server.WriteTimeout = time.Second * s.cfg.Server.WriteTimeout
-
-		//go func() {
-		//	//s.logger.Infof("Server is listening on PORT: %s", s.cfg.Server.Port)
-		//	log.Printf("Server is listening on PORT: %s", s.cfg.Server.Port)
-		//	s.echo.Server.ReadTimeout = time.Second * s.cfg.Server.ReadTimeout
-		//	s.echo.Server.WriteTimeout = time.Second * s.cfg.Server.WriteTimeout
-		//	s.echo.Server.MaxHeaderBytes = maxHeaderBytes
-		//	if err := s.echo.StartTLS(s.cfg.Server.Port, certFile, keyFile); err != nil {
-		//		//s.logger.Fatalf("Error starting TLS Server: ", err)
-		//		log.Printf("Error starting TLS Server: %s", err)
-		//	}
-		//}()
-
-		//go func() {
-		//	//s.logger.Infof("Starting Debug Server on PORT: %s", s.cfg.Server.PprofPort)
-		//	log.Printf("Starting Debug Server on PORT: %s", s.cfg.Server.PprofPort)
-		//	if err := http.ListenAndServe(s.cfg.Server.PprofPort, http.DefaultServeMux); err != nil {
-		//		//s.logger.Errorf("Error PPROF ListenAndServe: %s", err)
-		//		log.Fatalf("Error PPROF ListenAndServe: %s", err)
-		//	}
-		//}()
-
-		//quit := make(chan os.Signal, 1)
-		//signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-		//
-		//<-quit
-		//
-		//ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
-		//defer shutdown()
-		//
-		//s.logger.Info("Server Exited Properly")
-		//return s.echo.Server.Shutdown(ctx)
-	}
+	//if s.cfg.Server.SSL {
+	//	//if err := s.MapHandlers(s.echo); err != nil {
+	//	//	return err
+	//	//}
+	//	//
+	//	//s.echo.Server.ReadTimeout = time.Second * s.cfg.Server.ReadTimeout
+	//	//s.echo.Server.WriteTimeout = time.Second * s.cfg.Server.WriteTimeout
+	//	//
+	//	////go func() {
+	//	////	//s.logger.Infof("Server is listening on PORT: %s", s.cfg.Server.Port)
+	//	////	log.Printf("Server is listening on PORT: %s", s.cfg.Server.Port)
+	//	////	s.echo.Server.ReadTimeout = time.Second * s.cfg.Server.ReadTimeout
+	//	////	s.echo.Server.WriteTimeout = time.Second * s.cfg.Server.WriteTimeout
+	//	////	s.echo.Server.MaxHeaderBytes = maxHeaderBytes
+	//	////	if err := s.echo.StartTLS(s.cfg.Server.Port, certFile, keyFile); err != nil {
+	//	////		//s.logger.Fatalf("Error starting TLS Server: ", err)
+	//	////		log.Printf("Error starting TLS Server: %s", err)
+	//	////	}
+	//	////}()
+	//	//
+	//	////go func() {
+	//	////	//s.logger.Infof("Starting Debug Server on PORT: %s", s.cfg.Server.PprofPort)
+	//	////	log.Printf("Starting Debug Server on PORT: %s", s.cfg.Server.PprofPort)
+	//	////	if err := http.ListenAndServe(s.cfg.Server.PprofPort, http.DefaultServeMux); err != nil {
+	//	////		//s.logger.Errorf("Error PPROF ListenAndServe: %s", err)
+	//	////		log.Fatalf("Error PPROF ListenAndServe: %s", err)
+	//	////	}
+	//	////}()
+	//	//
+	//	//quit := make(chan os.Signal, 1)
+	//	//signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	//	//
+	//	//<-quit
+	//	//
+	//	//ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
+	//	//defer shutdown()
+	//	//
+	//	////s.logger.Info("Server Exited Properly")
+	//	//log.Println("Server Exited Properly")
+	//	//return s.echo.Server.Shutdown(ctx)
+	//}
 
 	server := &http.Server{
 		Addr:           s.cfg.Server.Port,
@@ -117,7 +118,7 @@ func (s *Server) Run() error {
 	ctx, shutdown := context.WithTimeout(context.Background(), ctxTimeout*time.Second)
 	defer shutdown()
 
-	s.logger.Info("Server Exited Properly")
-	//log.Info("Server Exited Properly")
+	//s.logger.Info("Server Exited Properly")
+	log.Info("Server Exited Properly")
 	return s.echo.Server.Shutdown(ctx)
 }

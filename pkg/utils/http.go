@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"github.com/labstack/echo/v4"
-	"go-clean-architecture-rest/pkg/logger"
 )
 
 // GetConfigPath Get config path for local or docker
@@ -22,15 +21,15 @@ func ReadRequest(ctx echo.Context, request interface{}) error {
 	return validate.StructCtx(ctx.Request().Context(), request)
 }
 
-// LogResponseError Error response with logging error for echo context
-func LogResponseError(ctx echo.Context, logger logger.Logger, err error) {
-	logger.Errorf(
-		"ErrResponseWithLog, RequestID: %s, IPAddress: %s, Error: %s",
-		GetRequestID(ctx),
-		GetIPAddress(ctx),
-		err,
-	)
-}
+//// LogResponseError Error response with logging error for echo context
+//func LogResponseError(ctx echo.Context, logger logger.Logger, err error) {
+//	logger.Errorf(
+//		"ErrResponseWithLog, RequestID: %s, IPAddress: %s, Error: %s",
+//		GetRequestID(ctx),
+//		GetIPAddress(ctx),
+//		err,
+//	)
+//}
 
 // GetRequestID Get request id from echo context
 func GetRequestID(c echo.Context) string {
@@ -43,9 +42,4 @@ type ReqIDCtxKey struct{}
 // GetRequestCtx Get context  with request id
 func GetRequestCtx(c echo.Context) context.Context {
 	return context.WithValue(c.Request().Context(), ReqIDCtxKey{}, GetRequestID(c))
-}
-
-// GetIPAddress Get user ip address
-func GetIPAddress(c echo.Context) string {
-	return c.Request().RemoteAddr
 }

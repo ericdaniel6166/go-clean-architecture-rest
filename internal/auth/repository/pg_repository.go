@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"github.com/jmoiron/sqlx"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"go-clean-architecture-rest/internal/auth"
 	"go-clean-architecture-rest/internal/models"
@@ -21,8 +20,8 @@ func NewAuthRepository(db *sqlx.DB) auth.Repository {
 
 // Register Create new user
 func (r *authRepo) Register(ctx context.Context, user *models.User) (*models.User, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "authRepo.Register")
-	defer span.Finish()
+	//span, ctx := opentracing.StartSpanFromContext(ctx, "authRepo.Register")
+	//defer span.Finish()
 
 	u := &models.User{}
 	if err := r.db.QueryRowxContext(ctx, createUserQuery, &user.FirstName, &user.LastName, &user.Email,
@@ -37,8 +36,8 @@ func (r *authRepo) Register(ctx context.Context, user *models.User) (*models.Use
 
 // FindByEmail Find user by email
 func (r *authRepo) FindByEmail(ctx context.Context, user *models.User) (*models.User, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "authRepo.FindByEmail")
-	defer span.Finish()
+	//span, ctx := opentracing.StartSpanFromContext(ctx, "authRepo.FindByEmail")
+	//defer span.Finish()
 
 	foundUser := &models.User{}
 	if err := r.db.QueryRowxContext(ctx, findUserByEmail, user.Email).StructScan(foundUser); err != nil {

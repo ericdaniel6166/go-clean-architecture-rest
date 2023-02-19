@@ -7,43 +7,36 @@ import (
 	"time"
 )
 
+// LoadConfig Load config file from given path
+func LoadConfig(filename string) (*viper.Viper, error) {
+	v := viper.New()
+
+	v.SetConfigName(filename)
+	v.AddConfigPath(".")
+	v.AutomaticEnv()
+	if err := v.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			return nil, errors.New("config file not found")
+		}
+		return nil, err
+	}
+
+	return v, nil
+}
+
 // Config App config struct
 type Config struct {
 	Server   ServerConfig
 	Postgres PostgresConfig
-	Logger   Logger
-	Jaeger   Jaeger
-	Session  Session
 	//Redis    RedisConfig
 	//MongoDB  MongoDB
 	//Cookie   Cookie
 	//Store Store
+	//Session  Session
 	//Metrics  Metrics
+	//Logger   Logger
 	//AWS      AWS
-
-}
-
-// Session config
-type Session struct {
-	Prefix string
-	Name   string
-	Expire int
-}
-
-// Jaeger AWS S3
-type Jaeger struct {
-	Host        string
-	ServiceName string
-	LogSpans    bool
-}
-
-// Logger config
-type Logger struct {
-	Development       bool
-	DisableCaller     bool
-	DisableStacktrace bool
-	Encoding          string
-	Level             string
+	//Jaeger   Jaeger
 }
 
 // ServerConfig Server config struct
@@ -71,23 +64,6 @@ type PostgresConfig struct {
 	PostgresqlDbname   string
 	PostgresqlSSLMode  bool
 	PgDriver           string
-}
-
-// LoadConfig Load config file from given path
-func LoadConfig(filename string) (*viper.Viper, error) {
-	v := viper.New()
-
-	v.SetConfigName(filename)
-	v.AddConfigPath(".")
-	v.AutomaticEnv()
-	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return nil, errors.New("config file not found")
-		}
-		return nil, err
-	}
-
-	return v, nil
 }
 
 // ParseConfig Parse config file

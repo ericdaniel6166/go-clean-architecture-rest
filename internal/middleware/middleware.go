@@ -1,4 +1,4 @@
-package middlewares
+package middleware
 
 import (
 	"go-clean-architecture-rest/config"
