@@ -40,3 +40,6 @@ vendor
 
 # iml file
 *.iml
+
+!ssl/server.pem
+/pgdata/
