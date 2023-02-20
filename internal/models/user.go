@@ -45,6 +45,14 @@ func (u *User) HashPassword() error {
 	return nil
 }
 
+// ComparePasswords Compare user password and payload
+func (u *User) ComparePasswords(password string) error {
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
+		return err
+	}
+	return nil
+}
+
 // SanitizePassword Sanitize user password
 func (u *User) SanitizePassword() {
 	u.Password = ""
