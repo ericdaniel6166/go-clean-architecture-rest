@@ -19,8 +19,8 @@ type User struct {
 	Avatar      *string    `json:"avatar,omitempty" db:"avatar" redis:"avatar" validate:"omitempty,lte=512,url"`
 	PhoneNumber *string    `json:"phone_number,omitempty" db:"phone_number" redis:"phone_number" validate:"omitempty,lte=20"`
 	Address     *string    `json:"address,omitempty" db:"address" redis:"address" validate:"omitempty,lte=250"`
-	City        *string    `json:"city,omitempty" db:"city" redis:"city" validate:"omitempty,lte=24"`
-	Country     *string    `json:"country,omitempty" db:"country" redis:"country" validate:"omitempty,lte=24"`
+	City        *string    `json:"city,omitempty" db:"city" redis:"city" validate:"omitempty,lte=100"`
+	Country     *string    `json:"country,omitempty" db:"country" redis:"country" validate:"omitempty,lte=100"`
 	Gender      *string    `json:"gender,omitempty" db:"gender" redis:"gender" validate:"omitempty,lte=10"`
 	Postcode    *int       `json:"postcode,omitempty" db:"postcode" redis:"postcode" validate:"omitempty"`
 	Birthday    *time.Time `json:"birthday,omitempty" db:"birthday" redis:"birthday" validate:"omitempty,lte=10"`

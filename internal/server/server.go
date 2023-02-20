@@ -5,7 +5,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 	"github.com/minio/minio-go/v7"
 	"go-clean-architecture-rest/config"
 	"go-clean-architecture-rest/pkg/logger"
@@ -88,20 +87,16 @@ func (s *Server) Run() error {
 	}
 
 	go func() {
-		//s.logger.Infof("Server is listening on PORT: %s", s.cfg.Server.Port)
-		log.Errorf("Server is listening on PORT: %s", s.cfg.Server.Port)
+		s.logger.Infof("Server is listening on PORT: %s", s.cfg.Server.Port)
 		if err := s.echo.StartServer(server); err != nil {
-			//s.logger.Fatalf("Error starting Server: ", err)
-			log.Errorf("Error starting Server: %s", err)
+			s.logger.Fatalf("Error starting Server: ", err)
 		}
 	}()
 
 	go func() {
-		//s.logger.Infof("Starting Debug Server on PORT: %s", s.cfg.Server.PprofPort)
-		log.Printf("Starting Debug Server on PORT: %s", s.cfg.Server.PprofPort)
+		s.logger.Infof("Starting Debug Server on PORT: %s", s.cfg.Server.PprofPort)
 		if err := http.ListenAndServe(s.cfg.Server.PprofPort, http.DefaultServeMux); err != nil {
-			//s.logger.Errorf("Error PPROF ListenAndServe: %s", err)
-			log.Errorf("Error PPROF ListenAndServe: %s", err)
+			s.logger.Errorf("Error PPROF ListenAndServe: %s", err)
 		}
 	}()
 
