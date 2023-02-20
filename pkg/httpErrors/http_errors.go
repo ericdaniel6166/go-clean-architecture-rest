@@ -11,34 +11,34 @@ import (
 )
 
 const (
-	ErrBadRequest         = "Bad request"
-	ErrEmailAlreadyExists = "User with given email already exists"
-	ErrNoSuchUser         = "User not found"
-	ErrWrongCredentials   = "Wrong Credentials"
-	ErrNotFound           = "Not Found"
-	ErrUnauthorized       = "Unauthorized"
-	ErrForbidden          = "Forbidden"
-	ErrBadQueryParams     = "Invalid query params"
+	ErrBadRequest         = "bad request"
+	ErrEmailAlreadyExists = "user with given email already exists"
+	ErrNoSuchUser         = "user not found"
+	ErrWrongCredentials   = "wrong credentials"
+	ErrNotFound           = "not found"
+	ErrUnauthorized       = "unauthorized"
+	ErrForbidden          = "forbidden"
+	ErrBadQueryParams     = "invalid query params"
 )
 
 var (
-	BadRequest            = errors.New("Bad request")
-	WrongCredentials      = errors.New("Wrong Credentials")
-	NotFound              = errors.New("Not Found")
-	Unauthorized          = errors.New("Unauthorized")
-	Forbidden             = errors.New("Forbidden")
-	PermissionDenied      = errors.New("Permission Denied")
-	ExpiredCSRFError      = errors.New("Expired CSRF token")
-	WrongCSRFToken        = errors.New("Wrong CSRF token")
-	CSRFNotPresented      = errors.New("CSRF not presented")
-	NotRequiredFields     = errors.New("No such required fields")
-	BadQueryParams        = errors.New("Invalid query params")
-	InternalServerError   = errors.New("Internal Server Error")
-	RequestTimeoutError   = errors.New("Request Timeout")
-	ExistsEmailError      = errors.New("User with given email already exists")
-	InvalidJWTToken       = errors.New("Invalid JWT token")
-	InvalidJWTClaims      = errors.New("Invalid JWT claims")
-	NotAllowedImageHeader = errors.New("Not allowed image header")
+	BadRequest            = errors.New(ErrBadRequest)
+	WrongCredentials      = errors.New(ErrWrongCredentials)
+	NotFound              = errors.New(ErrNotFound)
+	Unauthorized          = errors.New(ErrUnauthorized)
+	Forbidden             = errors.New(ErrForbidden)
+	PermissionDenied      = errors.New("permission denied")
+	ExpiredCSRFError      = errors.New("expired csrf token")
+	WrongCSRFToken        = errors.New("wrong csrf token")
+	CSRFNotPresented      = errors.New("csrf not presented")
+	NotRequiredFields     = errors.New("no such required fields")
+	BadQueryParams        = errors.New(ErrBadQueryParams)
+	InternalServerError   = errors.New("internal Server Error")
+	RequestTimeoutError   = errors.New("request Timeout")
+	ExistsEmailError      = errors.New("user with given email already exists")
+	InvalidJWTToken       = errors.New("invalid JWT token")
+	InvalidJWTClaims      = errors.New("invalid JWT claims")
+	NotAllowedImageHeader = errors.New("not allowed image header")
 	NoCookie              = errors.New("not found cookie header")
 )
 
@@ -80,7 +80,7 @@ func NewRestError(status int, err string, causes interface{}) RestErr {
 	}
 }
 
-// New Rest Error With Message
+// NewRestErrorWithMessage New Rest Error With Message
 func NewRestErrorWithMessage(status int, err string, causes interface{}) RestErr {
 	return RestError{
 		ErrStatus: status,
@@ -89,7 +89,7 @@ func NewRestErrorWithMessage(status int, err string, causes interface{}) RestErr
 	}
 }
 
-// New Rest Error From Bytes
+// NewRestErrorFromBytes New Rest Error From Bytes
 func NewRestErrorFromBytes(bytes []byte) (RestErr, error) {
 	var apiErr RestError
 	if err := json.Unmarshal(bytes, &apiErr); err != nil {
