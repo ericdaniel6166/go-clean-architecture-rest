@@ -58,3 +58,31 @@ func (u *authUC) Register(ctx context.Context, user *models.User) (*models.UserW
 		Token: token,
 	}, nil
 }
+
+// Login user, returns user model with jwt token
+func (u *authUC) Login(ctx context.Context, user *models.User) (*models.UserWithToken, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "authUC.Login")
+	defer span.Finish()
+
+	foundUser, err := u.authRepo.FindByEmail(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = foundUser.ComparePasswords(user.Password); err != nil {
+		u.logger.Errorf("password mismatch for user %s: %v", user.Email, err)
+		return nil, httpErrors.NewUnauthorizedError(errors.Wrap(err, "authUC.GetUsers.ComparePasswords"))
+	}
+
+	foundUser.SanitizePassword()
+
+	token, err := utils.GenerateJWTToken(foundUser, u.cfg)
+	if err != nil {
+		return nil, httpErrors.NewInternalServerError(errors.Wrap(err, "authUC.GetUsers.GenerateJWTToken"))
+	}
+
+	return &models.UserWithToken{
+		User:  foundUser,
+		Token: token,
+	}, nil
+}

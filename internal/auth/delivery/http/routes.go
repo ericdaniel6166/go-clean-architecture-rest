@@ -9,7 +9,7 @@ import (
 // MapAuthRoutes Map auth routes
 func MapAuthRoutes(authGroup *echo.Group, h auth.Handlers, mw *middlewares.MiddlewareManager) {
 	authGroup.POST("/register", h.Register())
-	//authGroup.POST("/login", h.Login())
+	authGroup.POST("/login", h.Login())
 	//authGroup.POST("/logout", h.Logout())
 	//authGroup.GET("/find", h.FindByName())
 	//authGroup.GET("/all", h.GetUsers())
