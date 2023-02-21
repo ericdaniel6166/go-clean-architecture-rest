@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/labstack/echo/v4"
 	"go-clean-architecture-rest/config"
+	"go-clean-architecture-rest/pkg/httpErrors"
 	"go-clean-architecture-rest/pkg/logger"
 	"net/http"
 )
@@ -34,6 +35,17 @@ func LogResponseError(ctx echo.Context, logger logger.Logger, err error) {
 	)
 }
 
+// ErrResponseWithLog Error response with logging error for echo context
+func ErrResponseWithLog(ctx echo.Context, logger logger.Logger, err error) error {
+	logger.Errorf(
+		"ErrResponseWithLog, RequestID: %s, IPAddress: %s, Error: %s",
+		GetRequestID(ctx),
+		GetIPAddress(ctx),
+		err,
+	)
+	return ctx.JSON(httpErrors.ErrorResponse(err))
+}
+
 // GetRequestID Get request id from echo context
 func GetRequestID(c echo.Context) string {
 	return c.Response().Header().Get(echo.HeaderXRequestID)
@@ -51,6 +63,9 @@ func GetRequestCtx(c echo.Context) context.Context {
 func GetIPAddress(c echo.Context) string {
 	return c.Request().RemoteAddr
 }
+
+// UserCtxKey is a key used for the User object in the context
+type UserCtxKey struct{}
 
 // CreateSessionCookie Configure jwt cookie
 func CreateSessionCookie(cfg *config.Config, session string) *http.Cookie {
