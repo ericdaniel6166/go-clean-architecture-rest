@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
 	"go-clean-architecture-rest/config"
@@ -64,7 +65,9 @@ func (h *authHandlers) Register() echo.HandlerFunc {
 		}
 		h.logger.Infof("session created: %#v", sess)
 
-		c.SetCookie(utils.CreateSessionCookie(h.cfg, sess))
+		sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
+		c.SetCookie(sessionCookie)
+		h.logger.Infof("set sessionCookie in the context, sessionCookie: %s", sessionCookie)
 
 		return c.JSON(http.StatusCreated, createdUser)
 	}
@@ -109,10 +112,70 @@ func (h *authHandlers) Login() echo.HandlerFunc {
 			utils.LogResponseError(c, h.logger, err)
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
-		h.logger.Infof("session created: %#v", sess)
+		h.logger.Infof("session created: %s", sess)
 
-		c.SetCookie(utils.CreateSessionCookie(h.cfg, sess))
+		sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
+		c.SetCookie(sessionCookie)
+		h.logger.Infof("set sessionCookie in the context, sessionCookie: %s", sessionCookie)
 
 		return c.JSON(http.StatusOK, userWithToken)
+	}
+}
+
+// GetMe godoc
+// @Summary Get user by id
+// @Description Get current user by id
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.User
+// @Failure 500 {object} httpErrors.RestError
+// @Router /auth/me [get]
+func (h *authHandlers) GetMe() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		span, _ := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "authHandlers.GetMe")
+		defer span.Finish()
+
+		user, ok := c.Get("user").(*models.User)
+		if !ok {
+			utils.LogResponseError(c, h.logger, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+			return utils.ErrResponseWithLog(c, h.logger, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+		}
+		h.logger.Infof("get user from context, user.UserID: %d, user.Email: %s", user.UserID.String(), user.Email)
+
+		return c.JSON(http.StatusOK, user)
+	}
+}
+
+// GetUserByID godoc
+// @Summary get user by id
+// @Description get string by ID
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Param id path int true "user_id"
+// @Success 200 {object} models.User
+// @Failure 500 {object} httpErrors.RestError
+// @Router /auth/{id} [get]
+func (h *authHandlers) GetUserByID() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "authHandlers.GetUserByID")
+		defer span.Finish()
+
+		uID, err := uuid.Parse(c.Param("user_id"))
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(httpErrors.ErrorResponse(err))
+		}
+		h.logger.Infof("parse user_id from context, user_id: %s, uID: %s", c.Param("user_id"), uID)
+
+		user, err := h.authUC.GetByID(ctx, uID)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(httpErrors.ErrorResponse(err))
+		}
+		h.logger.Infof("get user by id, uID: %s, user.UserID: %s, user.Email: %s", uID, user.UserID, user.Email)
+
+		return c.JSON(http.StatusOK, user)
 	}
 }
