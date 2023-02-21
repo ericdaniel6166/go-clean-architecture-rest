@@ -7,6 +7,8 @@ import (
 	authRepository "go-clean-architecture-rest/internal/auth/repository"
 	authUseCase "go-clean-architecture-rest/internal/auth/usecase"
 	apiMiddlewares "go-clean-architecture-rest/internal/middlewares"
+	sessionRepository "go-clean-architecture-rest/internal/session/repository"
+	"go-clean-architecture-rest/internal/session/usecase"
 	"go-clean-architecture-rest/pkg/utils"
 	"net/http"
 )
@@ -27,26 +29,24 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	aRepo := authRepository.NewAuthRepository(s.db)
 	//nRepo := newsRepository.NewNewsRepository(s.db)
 	//cRepo := commentsRepository.NewCommentsRepository(s.db)
-	//sRepo := sessionRepository.NewSessionRepository(s.redisClient, s.cfg)
+	sRepo := sessionRepository.NewSessionRepository(s.redisClient, s.cfg)
 	//aAWSRepo := authRepository.NewAuthAWSRepository(s.awsClient)
-	//authRedisRepo := authRepository.NewAuthRedisRepo(s.redisClient)
+	authRedisRepo := authRepository.NewAuthRedisRepo(s.redisClient)
 	//newsRedisRepo := newsRepository.NewNewsRedisRepo(s.redisClient)
 
 	// Init useCases
 	//authUC := authUseCase.NewAuthUseCase(s.cfg, aRepo, authRedisRepo, aAWSRepo, s.logger)
-	authUC := authUseCase.NewAuthUseCase(s.cfg, aRepo, nil, nil, s.logger)
+	authUC := authUseCase.NewAuthUseCase(s.cfg, aRepo, authRedisRepo, nil, s.logger)
 	//newsUC := newsUseCase.NewNewsUseCase(s.cfg, nRepo, newsRedisRepo, s.logger)
 	//commUC := commentsUseCase.NewCommentsUseCase(s.cfg, cRepo, s.logger)
-	//sessUC := usecase.NewSessionUseCase(sRepo, s.cfg)
+	sessUC := usecase.NewSessionUseCase(sRepo, s.cfg)
 
 	// Init handlers
-	//authHandlers := authHttp.NewAuthHandlers(s.cfg, authUC, sessUC, s.logger)
-	authHandlers := authHttp.NewAuthHandlers(s.cfg, authUC, nil, s.logger)
+	authHandlers := authHttp.NewAuthHandlers(s.cfg, authUC, sessUC, s.logger)
 	//newsHandlers := newsHttp.NewNewsHandlers(s.cfg, newsUC, s.logger)
 	//commHandlers := commentsHttp.NewCommentsHandlers(s.cfg, commUC, s.logger)
 
-	//mw := apiMiddlewares.NewMiddlewareManager(sessUC, authUC, s.cfg, []string{"*"}, s.logger)
-	mw := apiMiddlewares.NewMiddlewareManager(nil, authUC, s.cfg, []string{"*"}, s.logger)
+	mw := apiMiddlewares.NewMiddlewareManager(sessUC, authUC, s.cfg, []string{"*"}, s.logger)
 
 	e.Use(mw.RequestLoggerMiddleware)
 

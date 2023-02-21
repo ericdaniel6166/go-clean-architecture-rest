@@ -1,4 +1,4 @@
-//go:generate mockgen -source usecase.go -destination mock/usecase_mock.go -package mock
+//go:generate mockgen -source redis_repository.go -destination mock/redis_repository_mock.go -package mock
 package session
 
 import (
@@ -6,8 +6,8 @@ import (
 	"go-clean-architecture-rest/internal/models"
 )
 
-// UCSession Session use case
-type UCSession interface {
+// SessRepository Session repository
+type SessRepository interface {
 	CreateSession(ctx context.Context, session *models.Session, expire int) (string, error)
 	GetSessionByID(ctx context.Context, sessionID string) (*models.Session, error)
 	//DeleteByID(ctx context.Context, sessionID string) error
