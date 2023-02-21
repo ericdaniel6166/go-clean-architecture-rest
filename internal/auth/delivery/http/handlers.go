@@ -35,34 +35,36 @@ func NewAuthHandlers(cfg *config.Config, authUC auth.UseCase, sessUC session.UCS
 // @Success 201 {object} models.User
 // @Router /auth/register [post]
 func (h *authHandlers) Register() echo.HandlerFunc {
+
 	return func(c echo.Context) error {
 		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "auth.Register")
 		defer span.Finish()
 
 		user := &models.User{}
 		if err := utils.ReadRequest(c, user); err != nil {
+			h.logger.Errorf("Failed to read request: %v", err)
 			utils.LogResponseError(c, h.logger, err)
-			//log.Errorf("error read request: %s", err)
-
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
 		createdUser, err := h.authUC.Register(ctx, user)
 		if err != nil {
+			h.logger.Errorf("Failed to register user: %v", err)
 			utils.LogResponseError(c, h.logger, err)
 
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
-		//sess, err := h.sessUC.CreateSession(ctx, &models.Session{
-		//	UserID: createdUser.User.UserID,
-		//}, h.cfg.Session.Expire)
-		//if err != nil {
-		//	utils.LogResponseError(c, h.logger, err)
-		//	return c.JSON(httpErrors.ErrorResponse(err))
-		//}
+		sess, err := h.sessUC.CreateSession(ctx, &models.Session{
+			UserID: createdUser.User.UserID,
+		}, h.cfg.Session.Expire)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(httpErrors.ErrorResponse(err))
+		}
+		h.logger.Infof("session created: %#v", sess)
 
-		//c.SetCookie(utils.CreateSessionCookie(h.cfg, sess))
+		c.SetCookie(utils.CreateSessionCookie(h.cfg, sess))
 
 		return c.JSON(http.StatusCreated, createdUser)
 	}
@@ -100,15 +102,16 @@ func (h *authHandlers) Login() echo.HandlerFunc {
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
-		//sess, err := h.sessUC.CreateSession(ctx, &models.Session{
-		//	UserID: userWithToken.User.UserID,
-		//}, h.cfg.Session.Expire)
-		//if err != nil {
-		//	utils.LogResponseError(c, h.logger, err)
-		//	return c.JSON(httpErrors.ErrorResponse(err))
-		//}
-		//
-		//c.SetCookie(utils.CreateSessionCookie(h.cfg, sess))
+		sess, err := h.sessUC.CreateSession(ctx, &models.Session{
+			UserID: userWithToken.User.UserID,
+		}, h.cfg.Session.Expire)
+		if err != nil {
+			utils.LogResponseError(c, h.logger, err)
+			return c.JSON(httpErrors.ErrorResponse(err))
+		}
+		h.logger.Infof("session created: %#v", sess)
+
+		c.SetCookie(utils.CreateSessionCookie(h.cfg, sess))
 
 		return c.JSON(http.StatusOK, userWithToken)
 	}

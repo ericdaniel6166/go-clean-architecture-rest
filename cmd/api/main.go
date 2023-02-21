@@ -10,6 +10,7 @@ import (
 	"go-clean-architecture-rest/internal/server"
 	"go-clean-architecture-rest/pkg/logger"
 	"go-clean-architecture-rest/pkg/postgres"
+	"go-clean-architecture-rest/pkg/redis"
 	"go-clean-architecture-rest/pkg/utils"
 	"log"
 	"os"
@@ -42,9 +43,9 @@ func main() {
 	}
 	defer psqlDB.Close()
 
-	//redisClient := redis.NewRedisClient(cfg)
-	//defer redisClient.Close()
-	//appLogger.Info("Redis connected")
+	redisClient := redis.NewRedisClient(cfg)
+	defer redisClient.Close()
+	appLogger.Info("Redis connected")
 
 	//awsClient, err := aws.NewAWSClient(cfg.AWS.Endpoint, cfg.AWS.MinioAccessKey, cfg.AWS.MinioSecretKey, cfg.AWS.UseSSL)
 	//if err != nil {
@@ -78,7 +79,7 @@ func main() {
 	appLogger.Info("Opentracing connected")
 
 	//s := server.NewServer(cfg, psqlDB, redisClient, awsClient, appLogger)
-	s := server.NewServer(cfg, psqlDB, nil, nil, appLogger)
+	s := server.NewServer(cfg, psqlDB, redisClient, nil, appLogger)
 	if err = s.Run(); err != nil {
 		log.Fatalf("error running server: %s", err)
 	}

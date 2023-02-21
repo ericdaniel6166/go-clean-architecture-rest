@@ -14,13 +14,34 @@ type Config struct {
 	Logger   Logger
 	Jaeger   Jaeger
 	Session  Session
-	//Redis    RedisConfig
+	Redis    RedisConfig
+	Cookie   Cookie
 	//MongoDB  MongoDB
-	//Cookie   Cookie
 	//Store Store
 	//Metrics  Metrics
 	//AWS      AWS
 
+}
+
+// Cookie config
+type Cookie struct {
+	Name     string
+	MaxAge   int
+	Secure   bool
+	HTTPOnly bool
+}
+
+// RedisConfig Redis config
+type RedisConfig struct {
+	RedisAddr      string
+	RedisPassword  string
+	RedisDB        string
+	RedisDefaultdb string
+	MinIdleConns   int
+	PoolSize       int
+	PoolTimeout    int
+	Password       string
+	DB             int
 }
 
 // Session config

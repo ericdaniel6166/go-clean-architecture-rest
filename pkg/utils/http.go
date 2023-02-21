@@ -3,7 +3,9 @@ package utils
 import (
 	"context"
 	"github.com/labstack/echo/v4"
+	"go-clean-architecture-rest/config"
 	"go-clean-architecture-rest/pkg/logger"
+	"net/http"
 )
 
 // GetConfigPath Get config path for local or docker
@@ -48,4 +50,20 @@ func GetRequestCtx(c echo.Context) context.Context {
 // GetIPAddress Get user ip address
 func GetIPAddress(c echo.Context) string {
 	return c.Request().RemoteAddr
+}
+
+// CreateSessionCookie Configure jwt cookie
+func CreateSessionCookie(cfg *config.Config, session string) *http.Cookie {
+	return &http.Cookie{
+		Name:  cfg.Session.Name,
+		Value: session,
+		Path:  "/",
+		// Domain: "/",
+		// Expires:    time.Now().Add(1 * time.Minute),
+		RawExpires: "",
+		MaxAge:     cfg.Session.Expire,
+		Secure:     cfg.Cookie.Secure,
+		HttpOnly:   cfg.Cookie.HTTPOnly,
+		SameSite:   0,
+	}
 }
