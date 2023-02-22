@@ -2,18 +2,17 @@ package middlewares
 
 import (
 	"context"
-	_ "fmt"
-	_ "github.com/golang-jwt/jwt"
+	"fmt"
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	_ "go-clean-architecture-rest/config"
-	_ "go-clean-architecture-rest/internal/auth"
-	_ "go-clean-architecture-rest/internal/models"
+	"go-clean-architecture-rest/config"
+	"go-clean-architecture-rest/internal/auth"
 	"go-clean-architecture-rest/pkg/httpErrors"
 	"go-clean-architecture-rest/pkg/utils"
-	_ "go.uber.org/zap"
+	"go.uber.org/zap"
 	"net/http"
-	_ "strings"
-	_ "time"
+	"strings"
 )
 
 // AuthSessionMiddleware Auth sessions middleware using redis
@@ -80,7 +79,46 @@ func (mw *MiddlewareManager) AuthSessionMiddleware(next echo.HandlerFunc) echo.H
 	}
 }
 
-//// JWT way of auth using cookie or Authorization header
+// AuthJWTMiddleware JWT way of auth using cookie or Authorization header
+func (mw *MiddlewareManager) AuthJWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		bearerHeader := c.Request().Header.Get("Authorization")
+
+		mw.logger.Infof("AuthJWTMiddleware, bearerHeader: %s", bearerHeader)
+
+		if bearerHeader != "" {
+			headerParts := strings.Split(bearerHeader, " ")
+			if len(headerParts) != 2 {
+				mw.logger.Error("auth middleware", zap.String("headerParts", "len(headerParts) != 2"))
+				return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+			}
+			mw.logger.Infof("auth middleware headerParts: %s", headerParts)
+
+			tokenString := headerParts[1]
+
+			if err := mw.validateJWTToken(tokenString, mw.authUC, c, mw.cfg); err != nil {
+				mw.logger.Error("middleware validateJWTToken", zap.String("headerJWT", err.Error()))
+				return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+			}
+
+			return next(c)
+		}
+
+		cookie, err := c.Cookie("jwt-token")
+		if err != nil {
+			mw.logger.Errorf("c.Cookie", err.Error())
+			return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+		}
+
+		if err = mw.validateJWTToken(cookie.Value, mw.authUC, c, mw.cfg); err != nil {
+			mw.logger.Errorf("validateJWTToken", err.Error())
+			return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+		}
+		return next(c)
+	}
+}
+
+//// AuthJWTMiddleware JWT way of auth using cookie or Authorization header
 //func (mw *MiddlewareManager) AuthJWTMiddleware(authUC auth.UseCase, cfg *config.Config) echo.MiddlewareFunc {
 //	return func(next echo.HandlerFunc) echo.HandlerFunc {
 //		return func(c echo.Context) error {
@@ -190,50 +228,57 @@ func (mw *MiddlewareManager) AuthSessionMiddleware(next echo.HandlerFunc) echo.H
 //	}
 //}
 
-//func (mw *MiddlewareManager) validateJWTToken(tokenString string, authUC auth.UseCase, c echo.Context, cfg *config.Config) error {
-//	if tokenString == "" {
-//		return httpErrors.InvalidJWTToken
-//	}
-//
-//	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-//		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-//			return nil, fmt.Errorf("unexpected signin method %v", token.Header["alg"])
-//		}
-//		secret := []byte(cfg.Server.JwtSecretKey)
-//		return secret, nil
-//	})
-//	if err != nil {
-//		return err
-//	}
-//
-//	if !token.Valid {
-//		return httpErrors.InvalidJWTToken
-//	}
-//
-//	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-//		userID, ok := claims["id"].(string)
-//		if !ok {
-//			return httpErrors.InvalidJWTClaims
-//		}
-//
-//		userUUID, err := uuid.Parse(userID)
-//		if err != nil {
-//			return err
-//		}
-//
-//		u, err := authUC.GetByID(c.Request().Context(), userUUID)
-//		if err != nil {
-//			return err
-//		}
-//
-//		c.Set("user", u)
-//
-//		ctx := context.WithValue(c.Request().Context(), utils.UserCtxKey{}, u)
-//		// req := c.Request().WithContext(ctx)
-//		c.SetRequest(c.Request().WithContext(ctx))
-//	}
-//	return nil
-//}
+func (mw *MiddlewareManager) validateJWTToken(tokenString string, authUC auth.UseCase, c echo.Context, cfg *config.Config) error {
+	if tokenString == "" {
+		return httpErrors.InvalidJWTToken
+	}
+	mw.logger.Infof("Validating JWT token, tokenString: %s", tokenString)
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signin method %v", token.Header["alg"])
+		}
+		secret := []byte(cfg.Server.JwtSecretKey)
+		return secret, nil
+	})
+	mw.logger.Infof("Validating JWT token, token: %#v", token)
+	if err != nil {
+		return err
+	}
+
+	if !token.Valid {
+		return httpErrors.InvalidJWTToken
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		mw.logger.Infof("Validating JWT token claims, claims: %#v", claims)
+		userID, ok := claims["id"].(string)
+		if !ok {
+			return httpErrors.InvalidJWTClaims
+		}
+
+		userUUID, err := uuid.Parse(userID)
+		mw.logger.Infof("Validating JWT token claims, userID: %s, userUUID: %s", userID, userUUID.String())
+		if err != nil {
+			return err
+		}
+
+		u, err := authUC.GetByID(c.Request().Context(), userUUID)
+		mw.logger.Infof("Validating JWT token claims, u: %s")
+		if err != nil {
+			return err
+		}
+
+		c.Set("user", u)
+		mw.logger.Infof("set user in the context, u.UserID: %s, u.Email: %s", u.UserID, u.Email)
+
+		ctx := context.WithValue(c.Request().Context(), utils.UserCtxKey{}, u)
+		mw.logger.Infof("ctx: %#v", ctx)
+		c.SetRequest(c.Request().WithContext(ctx))
+		mw.logger.Infof("c: %#v", c)
+	}
+	return nil
+}
 
 //// Check auth middleware
 //func (mw *MiddlewareManager) CheckAuth(next echo.HandlerFunc) echo.HandlerFunc {
