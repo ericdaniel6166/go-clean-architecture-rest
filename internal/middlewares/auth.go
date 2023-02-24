@@ -19,7 +19,6 @@ import (
 func (mw *MiddlewareManager) AuthSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cookie, err := c.Cookie(mw.cfg.Session.Name)
-		mw.logger.Infof("cookie name: %s, cookie: %#v", mw.cfg.Session.Name, cookie)
 		if err != nil {
 			mw.logger.Errorf("AuthSessionMiddleware RequestID: %s, Error: %s",
 				utils.GetRequestID(c),
@@ -30,12 +29,9 @@ func (mw *MiddlewareManager) AuthSessionMiddleware(next echo.HandlerFunc) echo.H
 			}
 			return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
 		}
-
-		sid := cookie.Value
-		mw.logger.Infof("sid: %s", sid)
+		mw.logger.Infof("get cookie, RequestID: %s, cookie name: %s, cookie: %#v", utils.GetRequestID(c), mw.cfg.Session.Name, cookie)
 
 		sess, err := mw.sessUC.GetSessionByID(c.Request().Context(), cookie.Value)
-		mw.logger.Infof("sess.SessionID: %s", sess.SessionID)
 		if err != nil {
 			mw.logger.Errorf("GetSessionByID RequestID: %s, CookieValue: %s, Error: %s",
 				utils.GetRequestID(c),
@@ -44,8 +40,8 @@ func (mw *MiddlewareManager) AuthSessionMiddleware(next echo.HandlerFunc) echo.H
 			)
 			return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
 		}
-
-		user, err := mw.authUC.GetByID(c.Request().Context(), sess.UserID)
+		uid := sess.UserID
+		user, err := mw.authUC.GetByID(c.Request().Context(), uid)
 		if err != nil {
 			mw.logger.Errorf("GetByID RequestID: %s, Error: %s",
 				utils.GetRequestID(c),
@@ -53,26 +49,22 @@ func (mw *MiddlewareManager) AuthSessionMiddleware(next echo.HandlerFunc) echo.H
 			)
 			return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
 		}
-
+		sid := sess.SessionID
 		c.Set("sid", sid)
-		mw.logger.Infof("set cookie.Value to sid in the context, sid: %s", sid)
-		c.Set("uid", sess.SessionID)
-		mw.logger.Infof("set sess.SessionID to uid in the context, uid: %s", sess.SessionID)
+		c.Set("uid", uid)
 		c.Set("user", user)
-		mw.logger.Infof("save user in the context, user.UserID: %s, user.Email: %s", user.UserID.String(), user.Email)
+		mw.logger.Infof("save in the context, RequestID: %s, sid: %s, uid: %s, user with email: %s",
+			utils.GetRequestID(c), sid, uid.String(), user.Email)
 
 		ctx := context.WithValue(c.Request().Context(), utils.UserCtxKey{}, user)
 		c.SetRequest(c.Request().WithContext(ctx))
 
 		mw.logger.Infof(
-			"SessionMiddleware, RequestID: %s,  IP: %s, UserID: %s, CookieSessionID: %s, cookie.Value: %s, uid: %s, sess.SessionID: %s",
+			"SessionMiddleware, RequestID: %s,  IP: %s, uid: %s, sid: %s",
 			utils.GetRequestID(c),
 			utils.GetIPAddress(c),
-			user.UserID.String(),
-			cookie.Value,
-			cookie.Value,
-			sess.SessionID,
-			sess.SessionID,
+			uid.String(),
+			sid,
 		)
 
 		return next(c)
@@ -92,7 +84,6 @@ func (mw *MiddlewareManager) AuthJWTMiddleware(next echo.HandlerFunc) echo.Handl
 				mw.logger.Error("auth middleware", zap.String("headerParts", "len(headerParts) != 2"))
 				return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
 			}
-			mw.logger.Infof("auth middleware headerParts: %s", headerParts)
 
 			tokenString := headerParts[1]
 
@@ -241,7 +232,6 @@ func (mw *MiddlewareManager) validateJWTToken(tokenString string, authUC auth.Us
 		secret := []byte(cfg.Server.JwtSecretKey)
 		return secret, nil
 	})
-	mw.logger.Infof("Validating JWT token, token: %#v", token)
 	if err != nil {
 		return err
 	}
@@ -251,20 +241,17 @@ func (mw *MiddlewareManager) validateJWTToken(tokenString string, authUC auth.Us
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		mw.logger.Infof("Validating JWT token claims, claims: %#v", claims)
 		userID, ok := claims["id"].(string)
 		if !ok {
 			return httpErrors.InvalidJWTClaims
 		}
 
 		userUUID, err := uuid.Parse(userID)
-		mw.logger.Infof("Validating JWT token claims, userID: %s, userUUID: %s", userID, userUUID.String())
 		if err != nil {
 			return err
 		}
 
 		u, err := authUC.GetByID(c.Request().Context(), userUUID)
-		mw.logger.Infof("Validating JWT token claims, u: %s")
 		if err != nil {
 			return err
 		}
@@ -273,9 +260,7 @@ func (mw *MiddlewareManager) validateJWTToken(tokenString string, authUC auth.Us
 		mw.logger.Infof("set user in the context, u.UserID: %s, u.Email: %s", u.UserID, u.Email)
 
 		ctx := context.WithValue(c.Request().Context(), utils.UserCtxKey{}, u)
-		mw.logger.Infof("ctx: %#v", ctx)
 		c.SetRequest(c.Request().WithContext(ctx))
-		mw.logger.Infof("c: %#v", c)
 	}
 	return nil
 }

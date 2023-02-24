@@ -37,12 +37,7 @@ func LogResponseError(ctx echo.Context, logger logger.Logger, err error) {
 
 // ErrResponseWithLog Error response with logging error for echo context
 func ErrResponseWithLog(ctx echo.Context, logger logger.Logger, err error) error {
-	logger.Errorf(
-		"ErrResponseWithLog, RequestID: %s, IPAddress: %s, Error: %s",
-		GetRequestID(ctx),
-		GetIPAddress(ctx),
-		err,
-	)
+	LogResponseError(ctx, logger, err)
 	return ctx.JSON(httpErrors.ErrorResponse(err))
 }
 
@@ -67,7 +62,7 @@ func GetIPAddress(c echo.Context) string {
 // UserCtxKey is a key used for the User object in the context
 type UserCtxKey struct{}
 
-// CreateSessionCookie Configure jwt cookie
+// CreateSessionCookie Create session cookie
 func CreateSessionCookie(cfg *config.Config, session string) *http.Cookie {
 	return &http.Cookie{
 		Name:  cfg.Session.Name,
