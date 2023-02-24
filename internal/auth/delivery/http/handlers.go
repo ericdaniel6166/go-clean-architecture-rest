@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
@@ -8,6 +9,7 @@ import (
 	"go-clean-architecture-rest/internal/auth"
 	"go-clean-architecture-rest/internal/models"
 	"go-clean-architecture-rest/internal/session"
+	"go-clean-architecture-rest/pkg/csrf"
 	"go-clean-architecture-rest/pkg/httpErrors"
 	"go-clean-architecture-rest/pkg/logger"
 	"go-clean-architecture-rest/pkg/utils"
@@ -27,6 +29,34 @@ func NewAuthHandlers(cfg *config.Config, authUC auth.UseCase, sessUC session.UCS
 	return &authHandlers{cfg: cfg, authUC: authUC, sessUC: sessUC, logger: log}
 }
 
+// GetCSRFToken godoc
+// @Summary Get CSRF token
+// @Description Get CSRF token, required auth session cookie
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {string} string "Ok"
+// @Failure 500 {object} httpErrors.RestError
+// @Router /auth/token [get]
+func (h *authHandlers) GetCSRFToken() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		span, _ := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "authHandlers.GetCSRFToken")
+		defer span.Finish()
+
+		sid, ok := c.Get("sid").(string)
+		if !ok {
+			return utils.ErrResponseWithLog(c, h.logger, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+		}
+		h.logger.Infof("GetCSRFToken, RequestID: %s, sid: %s", utils.GetRequestID(c), sid)
+		token := csrf.MakeToken(sid, h.logger)
+		h.logger.Infof("GetCSRFToken, RequestID: %s, token: %s", utils.GetRequestID(c), token)
+		c.Response().Header().Set(csrf.CSRFHeader, token)
+		c.Response().Header().Set("Access-Control-Expose-Headers", csrf.CSRFHeader)
+
+		return c.NoContent(http.StatusOK)
+	}
+}
+
 // Register godoc
 // @Summary Register new user
 // @Description register new user, returns user and token
@@ -43,31 +73,21 @@ func (h *authHandlers) Register() echo.HandlerFunc {
 
 		user := &models.User{}
 		if err := utils.ReadRequest(c, user); err != nil {
-			h.logger.Errorf("Failed to read request: %v", err)
 			utils.LogResponseError(c, h.logger, err)
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
 		createdUser, err := h.authUC.Register(ctx, user)
 		if err != nil {
-			h.logger.Errorf("Failed to register user: %v", err)
 			utils.LogResponseError(c, h.logger, err)
-
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
-		sess, err := h.sessUC.CreateSession(ctx, &models.Session{
-			UserID: createdUser.User.UserID,
-		}, h.cfg.Session.Expire)
+		err = h.handleSession(c, ctx, createdUser.User.UserID)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
-		h.logger.Infof("session created: %#v", sess)
-
-		sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
-		c.SetCookie(sessionCookie)
-		h.logger.Infof("set sessionCookie in the context, sessionCookie: %s", sessionCookie)
 
 		return c.JSON(http.StatusCreated, createdUser)
 	}
@@ -105,26 +125,34 @@ func (h *authHandlers) Login() echo.HandlerFunc {
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
-		sess, err := h.sessUC.CreateSession(ctx, &models.Session{
-			UserID: userWithToken.User.UserID,
-		}, h.cfg.Session.Expire)
+		err = h.handleSession(c, ctx, userWithToken.User.UserID)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
-		h.logger.Infof("session created: %s", sess)
-
-		sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
-		c.SetCookie(sessionCookie)
-		h.logger.Infof("set sessionCookie in the context, sessionCookie: %s", sessionCookie)
 
 		return c.JSON(http.StatusOK, userWithToken)
 	}
 }
 
+func (h *authHandlers) handleSession(c echo.Context, ctx context.Context, userID uuid.UUID) error {
+	sess, err := h.sessUC.CreateSession(ctx, &models.Session{
+		UserID: userID,
+	}, h.cfg.Session.Expire)
+	if err != nil {
+		return err
+	}
+	h.logger.Infof("session created, RequestID: %s, sess: %s", utils.GetRequestID(c), sess)
+
+	sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
+	c.SetCookie(sessionCookie)
+	h.logger.Infof("set sessionCookie in the context, RequestID: %s, sessionCookie: %s", utils.GetRequestID(c), sessionCookie)
+	return nil
+}
+
 // GetMe godoc
-// @Summary Get user by id
-// @Description Get current user by id
+// @Summary Get current user
+// @Description Get current user
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -138,43 +166,38 @@ func (h *authHandlers) GetMe() echo.HandlerFunc {
 
 		user, ok := c.Get("user").(*models.User)
 		if !ok {
-			utils.LogResponseError(c, h.logger, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
 			return utils.ErrResponseWithLog(c, h.logger, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
 		}
-		h.logger.Infof("get user from context, user.UserID: %d, user.Email: %s", user.UserID.String(), user.Email)
-
 		return c.JSON(http.StatusOK, user)
 	}
 }
 
 // GetUserByID godoc
 // @Summary get user by id
-// @Description get string by ID
+// @Description get user by ID
 // @Tags Auth
 // @Accept  json
 // @Produce  json
-// @Param id path int true "user_id"
+// @Param path variable "user_id"
 // @Success 200 {object} models.User
 // @Failure 500 {object} httpErrors.RestError
-// @Router /auth/{id} [get]
+// @Router /auth/{user_id} [get]
 func (h *authHandlers) GetUserByID() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "authHandlers.GetUserByID")
 		defer span.Finish()
 
-		uID, err := uuid.Parse(c.Param("user_id"))
+		uid, err := uuid.Parse(c.Param("user_id"))
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
-		h.logger.Infof("parse user_id from context, user_id: %s, uID: %s", c.Param("user_id"), uID)
 
-		user, err := h.authUC.GetByID(ctx, uID)
+		user, err := h.authUC.GetByID(ctx, uid)
 		if err != nil {
 			utils.LogResponseError(c, h.logger, err)
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
-		h.logger.Infof("get user by id, uID: %s, user.UserID: %s, user.Email: %s", uID, user.UserID, user.Email)
 
 		return c.JSON(http.StatusOK, user)
 	}

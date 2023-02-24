@@ -44,7 +44,6 @@ func (u *authUC) GetByID(ctx context.Context, userID uuid.UUID) (*models.User, e
 		u.logger.Errorf("authUC.GetByID.GetByIDCtx: %v", err)
 	}
 	if cachedUser != nil {
-		u.logger.Infof("get cachedUser, cachedUser.userID: %s, cachedUser.email: %s", userID.String(), cachedUser.Email)
 		return cachedUser, nil
 	}
 
@@ -52,12 +51,10 @@ func (u *authUC) GetByID(ctx context.Context, userID uuid.UUID) (*models.User, e
 	if err != nil {
 		return nil, err
 	}
-	u.logger.Infof("get user, user.userID: %s, user.email: %s", userID.String(), user.Email)
 
 	if err = u.redisRepo.SetUserCtx(ctx, u.GenerateUserKey(userID.String()), cacheDuration, user); err != nil {
 		u.logger.Errorf("authUC.GetByID.SetUserCtx: %v", err)
 	}
-	u.logger.Infof("caching user, user.userID: %s, user.email: %s", userID.String(), user.Email)
 
 	user.SanitizePassword()
 
@@ -75,7 +72,6 @@ func (u *authUC) Register(ctx context.Context, user *models.User) (*models.UserW
 
 	existsUser, err := u.authRepo.FindByEmail(ctx, user)
 	if existsUser != nil || err == nil {
-		u.logger.Errorf("user %s already exists", user.Email)
 		return nil, httpErrors.NewRestErrorWithMessage(http.StatusBadRequest, httpErrors.ErrEmailAlreadyExists, nil)
 	}
 
@@ -111,7 +107,6 @@ func (u *authUC) Login(ctx context.Context, user *models.User) (*models.UserWith
 	}
 
 	if err = foundUser.ComparePasswords(user.Password); err != nil {
-		u.logger.Errorf("password mismatch for user %s: %v", user.Email, err)
 		return nil, httpErrors.NewUnauthorizedError(errors.Wrap(err, "authUC.GetUsers.ComparePasswords"))
 	}
 
