@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"go-clean-architecture-rest/config"
 	"go-clean-architecture-rest/internal/auth"
+	"go-clean-architecture-rest/internal/models"
 	"go-clean-architecture-rest/pkg/httpErrors"
 	"go-clean-architecture-rest/pkg/utils"
 	"go.uber.org/zap"
@@ -160,33 +161,33 @@ func (mw *MiddlewareManager) AuthJWTMiddleware(next echo.HandlerFunc) echo.Handl
 //	}
 //}
 
-//// Role based auth middleware, using ctx user
-//func (mw *MiddlewareManager) OwnerOrAdminMiddleware() echo.MiddlewareFunc {
-//	return func(next echo.HandlerFunc) echo.HandlerFunc {
-//		return func(c echo.Context) error {
-//			user, ok := c.Get("user").(*models.User)
-//			if !ok {
-//				mw.logger.Errorf("Error c.Get(user) RequestID: %s, ERROR: %s,", utils.GetRequestID(c), "invalid user ctx")
-//				return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
-//			}
-//
-//			if *user.Role == "admin" {
-//				return next(c)
-//			}
-//
-//			if user.UserID.String() != c.Param("user_id") {
-//				mw.logger.Errorf("Error c.Get(user) RequestID: %s, UserID: %s, ERROR: %s,",
-//					utils.GetRequestID(c),
-//					user.UserID.String(),
-//					"invalid user ctx",
-//				)
-//				return c.JSON(http.StatusForbidden, httpErrors.NewForbiddenError(httpErrors.Forbidden))
-//			}
-//
-//			return next(c)
-//		}
-//	}
-//}
+// OwnerOrAdminMiddleware Role based auth middleware, using ctx user
+func (mw *MiddlewareManager) OwnerOrAdminMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			user, ok := c.Get("user").(*models.User)
+			if !ok {
+				mw.logger.Errorf("Error c.Get(user) RequestID: %s, ERROR: %s,", utils.GetRequestID(c), "invalid user ctx")
+				return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+			}
+
+			if *user.Role == "admin" {
+				return next(c)
+			}
+
+			if user.UserID.String() != c.Param("user_id") {
+				mw.logger.Errorf("Error c.Get(user) RequestID: %s, UserID: %s, ERROR: %s,",
+					utils.GetRequestID(c),
+					user.UserID.String(),
+					"invalid user ctx",
+				)
+				return c.JSON(http.StatusForbidden, httpErrors.NewForbiddenError(httpErrors.Forbidden))
+			}
+
+			return next(c)
+		}
+	}
+}
 
 //// Role based auth middleware, using ctx user
 //func (mw *MiddlewareManager) RoleBasedAuthMiddleware(roles []string) echo.MiddlewareFunc {
