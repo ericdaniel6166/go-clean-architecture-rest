@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"github.com/labstack/echo/v4"
-	"go-clean-architecture-rest/internal/models"
 	"go-clean-architecture-rest/pkg/csrf"
 	"go-clean-architecture-rest/pkg/httpErrors"
 	"go-clean-architecture-rest/pkg/utils"
@@ -26,10 +25,8 @@ func (mw *MiddlewareManager) CSRF(next echo.HandlerFunc) echo.HandlerFunc {
 			return ctx.JSON(http.StatusForbidden, httpErrors.NewRestError(http.StatusForbidden, "Invalid CSRF Token", "no CSRF Token"))
 		}
 
-		//sid, ok := ctx.Get("sid").(string)
-		//if !csrf.ValidateToken(token, sid, mw.logger) || !ok {
-		user, ok := ctx.Get("user").(*models.User)
-		if !csrf.ValidateToken(token, user.UserID.String(), mw.logger) || !ok {
+		sid, ok := ctx.Get("sid").(string)
+		if !csrf.ValidateToken(token, sid, mw.logger) || !ok {
 			mw.logger.Errorf("CSRF Middleware csrf.ValidateToken Token: %s, Error: %s, RequestId: %s",
 				token,
 				"invalid CSRF token",
