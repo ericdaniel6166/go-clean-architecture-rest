@@ -17,9 +17,10 @@ func MapAuthRoutes(authGroup *echo.Group, h auth.Handlers, mw *middlewares.Middl
 	authGroup.Use(mw.AuthSessionMiddleware)
 	authGroup.GET("/csrf-token", h.GetCSRFToken())
 	authGroup.Use(mw.CSRF)
-	authGroup.GET("/:user_id", h.GetUserByID()) // should use mw.OwnerOrAdminMiddleware()
 	authGroup.GET("/me", h.GetMe())
 	//authGroup.POST("/:user_id/avatar", h.UploadAvatar(), mw.CSRF)
+	authGroup.Use(mw.OwnerOrAdminMiddleware())
+	authGroup.GET("/:user_id", h.GetUserByID()) // should use mw.OwnerOrAdminMiddleware()
 	//authGroup.PUT("/:user_id", h.Update(), mw.OwnerOrAdminMiddleware(), mw.CSRF)
 	//authGroup.DELETE("/:user_id", h.Delete(), mw.CSRF, mw.RoleBasedAuthMiddleware([]string{"admin"}))
 }
