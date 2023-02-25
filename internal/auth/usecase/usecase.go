@@ -122,3 +122,11 @@ func (u *authUC) Login(ctx context.Context, user *models.User) (*models.UserWith
 		Token: token,
 	}, nil
 }
+
+// GetUsers Get users with pagination
+func (u *authUC) GetUsers(ctx context.Context, pq *utils.PaginationQuery) (*models.UsersList, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "authUC.GetUsers")
+	defer span.Finish()
+
+	return u.authRepo.GetUsers(ctx, pq)
+}
