@@ -189,36 +189,36 @@ func (mw *MiddlewareManager) OwnerOrAdminMiddleware() echo.MiddlewareFunc {
 	}
 }
 
-//// Role based auth middleware, using ctx user
-//func (mw *MiddlewareManager) RoleBasedAuthMiddleware(roles []string) echo.MiddlewareFunc {
-//	return func(next echo.HandlerFunc) echo.HandlerFunc {
-//		return func(c echo.Context) error {
-//			user, ok := c.Get("user").(*models.User)
-//			if !ok {
-//				mw.logger.Errorf("Error c.Get(user) RequestID: %s, UserID: %s, ERROR: %s,",
-//					utils.GetRequestID(c),
-//					user.UserID.String(),
-//					"invalid user ctx",
-//				)
-//				return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
-//			}
-//
-//			for _, role := range roles {
-//				if role == *user.Role {
-//					return next(c)
-//				}
-//			}
-//
-//			mw.logger.Errorf("Error c.Get(user) RequestID: %s, UserID: %s, ERROR: %s,",
-//				utils.GetRequestID(c),
-//				user.UserID.String(),
-//				"invalid user ctx",
-//			)
-//
-//			return c.JSON(http.StatusForbidden, httpErrors.NewForbiddenError(httpErrors.PermissionDenied))
-//		}
-//	}
-//}
+// RoleBasedAuthMiddleware Role based auth middleware, using ctx user
+func (mw *MiddlewareManager) RoleBasedAuthMiddleware(roles []string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			user, ok := c.Get("user").(*models.User)
+			if !ok {
+				mw.logger.Errorf("Error c.Get(user) RequestID: %s, UserID: %s, ERROR: %s,",
+					utils.GetRequestID(c),
+					user.UserID.String(),
+					"invalid user ctx",
+				)
+				return c.JSON(http.StatusUnauthorized, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
+			}
+
+			for _, role := range roles {
+				if role == *user.Role {
+					return next(c)
+				}
+			}
+
+			mw.logger.Errorf("Error user has no permission RequestID: %s, UserID: %s, ERROR: %s,",
+				utils.GetRequestID(c),
+				user.UserID.String(),
+				"has no permission",
+			)
+
+			return c.JSON(http.StatusForbidden, httpErrors.NewForbiddenError(httpErrors.PermissionDenied))
+		}
+	}
+}
 
 func (mw *MiddlewareManager) validateJWTToken(tokenString string, authUC auth.UseCase, c echo.Context, cfg *config.Config) error {
 	if tokenString == "" {
