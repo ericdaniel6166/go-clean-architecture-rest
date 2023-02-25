@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"go-clean-architecture-rest/internal/auth"
 	"go-clean-architecture-rest/internal/models"
+	"go-clean-architecture-rest/pkg/utils"
 )
 
 // Auth Repository
@@ -58,4 +59,47 @@ func (r *authRepo) GetByID(ctx context.Context, userID uuid.UUID) (*models.User,
 		return nil, errors.Wrap(err, "authRepo.GetByID.QueryRowxContext")
 	}
 	return user, nil
+}
+
+// GetUsers Get users with pagination
+func (r *authRepo) GetUsers(ctx context.Context, pq *utils.PaginationQuery) (*models.UsersList, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "authRepo.GetUsers")
+	defer span.Finish()
+
+	var totalCount int
+	if err := r.db.GetContext(ctx, &totalCount, getTotal); err != nil {
+		return nil, errors.Wrap(err, "authRepo.GetUsers.GetContext.totalCount")
+	}
+
+	if totalCount == 0 {
+		return &models.UsersList{
+			TotalCount: totalCount,
+			TotalPages: utils.GetTotalPages(totalCount, pq.GetSize()),
+			Page:       pq.GetPage(),
+			Size:       pq.GetSize(),
+			HasMore:    utils.GetHasMore(pq.GetPage(), totalCount, pq.GetSize()),
+			Users:      make([]*models.User, 0),
+		}, nil
+	}
+
+	var users = make([]*models.User, 0, pq.GetSize())
+	if err := r.db.SelectContext(
+		ctx,
+		&users,
+		getUsers,
+		pq.GetOrderBy(),
+		pq.GetOffset(),
+		pq.GetLimit(),
+	); err != nil {
+		return nil, errors.Wrap(err, "authRepo.GetUsers.SelectContext")
+	}
+
+	return &models.UsersList{
+		TotalCount: totalCount,
+		TotalPages: utils.GetTotalPages(totalCount, pq.GetSize()),
+		Page:       pq.GetPage(),
+		Size:       pq.GetSize(),
+		HasMore:    utils.GetHasMore(pq.GetPage(), totalCount, pq.GetSize()),
+		Users:      users,
+	}, nil
 }
