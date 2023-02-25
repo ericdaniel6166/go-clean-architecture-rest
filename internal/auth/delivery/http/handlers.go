@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
@@ -139,20 +138,20 @@ func (h *authHandlers) Login() echo.HandlerFunc {
 	}
 }
 
-func (h *authHandlers) handleSession(c echo.Context, ctx context.Context, userID uuid.UUID) error {
-	sess, err := h.sessUC.CreateSession(ctx, &models.Session{
-		UserID: userID,
-	}, h.cfg.Session.Expire)
-	if err != nil {
-		return err
-	}
-	h.logger.Infof("session created, RequestID: %s, sess: %s", utils.GetRequestID(c), sess)
-
-	sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
-	c.SetCookie(sessionCookie)
-	h.logger.Infof("set sessionCookie in the context, RequestID: %s, sessionCookie: %s", utils.GetRequestID(c), sessionCookie)
-	return nil
-}
+//func (h *authHandlers) handleSession(c echo.Context, ctx context.Context, userID uuid.UUID) error {
+//	sess, err := h.sessUC.CreateSession(ctx, &models.Session{
+//		UserID: userID,
+//	}, h.cfg.Session.Expire)
+//	if err != nil {
+//		return err
+//	}
+//	h.logger.Infof("session created, RequestID: %s, sess: %s", utils.GetRequestID(c), sess)
+//
+//	sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
+//	c.SetCookie(sessionCookie)
+//	h.logger.Infof("set sessionCookie in the context, RequestID: %s, sessionCookie: %s", utils.GetRequestID(c), sessionCookie)
+//	return nil
+//}
 
 // GetMe godoc
 // @Summary Get current user
