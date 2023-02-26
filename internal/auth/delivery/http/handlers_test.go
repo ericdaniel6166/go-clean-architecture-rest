@@ -93,10 +93,12 @@ func TestAuthHandlers_Register(t *testing.T) {
 }
 
 func TestAuthHandlers_Register2(t *testing.T) {
+	t.Parallel()
+
 	cfg, apiLogger, e := setup()
 
 	uid := uuid.New()
-	user := randomUser()
+	user := utils.RandomUser()
 	token := utils.RandomString(10)
 	userWithWrongFormatEmail := user
 	userWithWrongFormatEmail.Email = "wrong.format.email"
@@ -241,15 +243,6 @@ func buildCreatedUser(user models.User, uid uuid.UUID, token string) *models.Use
 		Token: token,
 	}
 	return u
-}
-
-func randomUser() models.User {
-	return models.User{
-		FirstName: utils.RandomString(10),
-		LastName:  utils.RandomString(10),
-		Email:     "email@gmail.com",
-		Password:  utils.RandomString(10),
-	}
 }
 
 func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, expected models.UserWithToken) {
