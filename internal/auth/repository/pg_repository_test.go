@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
-	"database/sql/driver"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"go-clean-architecture-rest/internal/models"
 	"go-clean-architecture-rest/pkg/utils"
@@ -65,6 +65,8 @@ func TestAuthRepo_Register2(t *testing.T) {
 
 	user := utils.RandomUser()
 
+	errQueryRowxContext := errors.New("ErrQueryRowxContext")
+
 	testCases := []struct {
 		name          string
 		buildStubs    func(user *models.User, rows *sqlmock.Rows)
@@ -78,7 +80,6 @@ func TestAuthRepo_Register2(t *testing.T) {
 				mock.ExpectQuery(createUserQuery).WithArgs(user.FirstName, user.LastName, user.Email,
 					user.Password, user.Role, user.About, user.Avatar, user.PhoneNumber, user.Address, user.City,
 					user.Gender, user.Postcode, user.Birthday).WillReturnRows(rows)
-
 			},
 			user: &user,
 			rows: sqlmock.NewRows([]string{"first_name", "last_name", "password", "email", "role", "gender"}).AddRow(
@@ -90,18 +91,18 @@ func TestAuthRepo_Register2(t *testing.T) {
 			},
 		},
 		{
-			name: "ErrBadConn",
+			name: "ErrQueryRowxContext",
 			buildStubs: func(user *models.User, rows *sqlmock.Rows) {
 				mock.ExpectQuery(createUserQuery).WithArgs(user.FirstName, user.LastName, user.Email,
 					user.Password, user.Role, user.About, user.Avatar, user.PhoneNumber, user.Address, user.City,
-					user.Gender, user.Postcode, user.Birthday).WillReturnError(driver.ErrBadConn)
-
+					user.Gender, user.Postcode, user.Birthday).WillReturnError(errQueryRowxContext)
 			},
 			user: &user,
 			rows: nil,
 			checkResponse: func(expected *models.User, actual *models.User, err error) {
 				require.Error(t, err)
 				require.Nil(t, actual)
+				require.EqualError(t, err, errors.Wrap(errQueryRowxContext, "authRepo.Register.StructScan").Error())
 			},
 		},
 	}
