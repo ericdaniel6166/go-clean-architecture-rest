@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"go-clean-architecture-rest/config"
 	"go-clean-architecture-rest/internal/auth/mock"
