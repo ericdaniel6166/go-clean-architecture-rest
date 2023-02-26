@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"go-clean-architecture-rest/internal/models"
 	"math/rand"
 	"strings"
 )
@@ -18,4 +19,17 @@ func RandomString(n int) string {
 	}
 
 	return sb.String()
+}
+
+func RandomUser() models.User {
+	gender := "male"
+	role := "user"
+	return models.User{
+		FirstName: RandomString(10),
+		LastName:  RandomString(10),
+		Email:     "email@gmail.com",
+		Password:  RandomString(10),
+		Gender:    &gender,
+		Role:      &role,
+	}
 }
