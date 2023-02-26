@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"go-clean-architecture-rest/config"
 	"go-clean-architecture-rest/internal/auth/mock"
@@ -95,7 +95,9 @@ func TestAuthHandlers_Register(t *testing.T) {
 func TestAuthHandlers_Register2(t *testing.T) {
 	t.Parallel()
 
-	cfg, apiLogger, e := setup()
+	cfg, apiLogger := utils.Setup()
+
+	e := echo.New()
 
 	uid := uuid.New()
 	user := utils.RandomUser()
@@ -119,7 +121,7 @@ func TestAuthHandlers_Register2(t *testing.T) {
 			},
 			user,
 			func(user models.User, uid uuid.UUID, token string) *models.UserWithToken {
-				return buildCreatedUser(user, uid, token)
+				return utils.BuildUserWithToken(user, uid, token)
 			},
 			func(uid uuid.UUID) *models.Session {
 				return &models.Session{
@@ -139,7 +141,7 @@ func TestAuthHandlers_Register2(t *testing.T) {
 			},
 			user,
 			func(user models.User, uid uuid.UUID, token string) *models.UserWithToken {
-				return buildCreatedUser(user, uid, token)
+				return utils.BuildUserWithToken(user, uid, token)
 			},
 			func(uid uuid.UUID) *models.Session {
 				return &models.Session{
@@ -218,32 +220,32 @@ func TestAuthHandlers_Register2(t *testing.T) {
 	}
 }
 
-func setup() (*config.Config, logger.Logger, *echo.Echo) {
-	cfg := &config.Config{
-		Session: config.Session{
-			Expire: 10,
-		},
-		Logger: config.Logger{
-			Development: true,
-		},
-	}
+//func setup() (*config.Config, logger.Logger, *echo.Echo) {
+//	cfg := &config.Config{
+//		Session: config.Session{
+//			Expire: 10,
+//		},
+//		Logger: config.Logger{
+//			Development: true,
+//		},
+//	}
+//
+//	apiLogger := logger.NewApiLogger(cfg)
+//	apiLogger.InitLogger()
+//
+//	e := echo.New()
+//	return cfg, apiLogger, e
+//}
 
-	apiLogger := logger.NewApiLogger(cfg)
-	apiLogger.InitLogger()
-
-	e := echo.New()
-	return cfg, apiLogger, e
-}
-
-func buildCreatedUser(user models.User, uid uuid.UUID, token string) *models.UserWithToken {
-	createdUser := user
-	createdUser.UserID = uid
-	u := &models.UserWithToken{
-		User:  &createdUser,
-		Token: token,
-	}
-	return u
-}
+//func buildUserWithToken(user models.User, uid uuid.UUID, token string) *models.UserWithToken {
+//	createdUser := user
+//	createdUser.UserID = uid
+//	u := &models.UserWithToken{
+//		User:  &createdUser,
+//		Token: token,
+//	}
+//	return u
+//}
 
 func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, expected models.UserWithToken) {
 	data, err := io.ReadAll(body)
