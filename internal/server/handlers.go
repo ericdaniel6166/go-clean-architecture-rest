@@ -9,21 +9,22 @@ import (
 	apiMiddlewares "go-clean-architecture-rest/internal/middlewares"
 	sessionRepository "go-clean-architecture-rest/internal/session/repository"
 	"go-clean-architecture-rest/internal/session/usecase"
+	"go-clean-architecture-rest/pkg/metric"
 	"go-clean-architecture-rest/pkg/utils"
 	"net/http"
 )
 
 // MapHandlers Map Server Handlers
 func (s *Server) MapHandlers(e *echo.Echo) error {
-	//metrics, err := metric.CreateMetrics(s.cfg.Metrics.URL, s.cfg.Metrics.ServiceName)
-	//if err != nil {
-	//	s.logger.Errorf("CreateMetrics Error: %s", err)
-	//}
-	//s.logger.Info(
-	//	"Metrics available URL: %s, ServiceName: %s",
-	//	s.cfg.Metrics.URL,
-	//	s.cfg.Metrics.ServiceName,
-	//)
+	metrics, err := metric.CreateMetrics(s.cfg.Metrics.URL, s.cfg.Metrics.ServiceName)
+	if err != nil {
+		s.logger.Errorf("CreateMetrics Error: %s", err)
+	}
+	s.logger.Info(
+		"Metrics available URL: %s, ServiceName: %s",
+		s.cfg.Metrics.URL,
+		s.cfg.Metrics.ServiceName,
+	)
 
 	// Init repositories
 	aRepo := authRepository.NewAuthRepository(s.db)
@@ -67,7 +68,7 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	//	DisableStackAll:   true,
 	//}))
 	e.Use(middleware.RequestID())
-	//e.Use(mw.MetricsMiddleware(metrics))
+	e.Use(mw.MetricsMiddleware(metrics))
 
 	//e.Use(middlewares.GzipWithConfig(middlewares.GzipConfig{
 	//	Level: 5,
