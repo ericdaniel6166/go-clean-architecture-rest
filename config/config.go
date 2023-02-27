@@ -16,11 +16,17 @@ type Config struct {
 	Session  Session
 	Redis    RedisConfig
 	Cookie   Cookie
+	Metrics  Metrics
 	//MongoDB  MongoDB
 	//Store Store
-	//Metrics  Metrics
 	//AWS      AWS
 
+}
+
+// Metrics config
+type Metrics struct {
+	URL         string
+	ServiceName string
 }
 
 // Cookie config
