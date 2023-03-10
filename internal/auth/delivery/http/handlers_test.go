@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"go-clean-architecture-rest/config"
 	"go-clean-architecture-rest/internal/auth/mock"
@@ -79,13 +78,13 @@ func TestAuthHandlers_Register(t *testing.T) {
 			UserID: userUID,
 		},
 	}
-	sess := &models.Session{
-		UserID: userUID,
-	}
-	session := "session"
+	//sess := &models.Session{
+	//	UserID: userUID,
+	//}
+	//session := "session"
 
 	mockAuthUC.EXPECT().Register(ctxWithTrace, gomock.Eq(user)).Return(userWithToken, nil)
-	mockSessUC.EXPECT().CreateSession(ctxWithTrace, gomock.Eq(sess), 10).Return(session, nil)
+	//mockSessUC.EXPECT().CreateSession(ctxWithTrace, gomock.Eq(sess), 10).Return(session, nil)
 
 	err = handlerFunc(c)
 	require.NoError(t, err)
@@ -107,26 +106,19 @@ func TestAuthHandlers_Register2(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		buildStubs    func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken, sess *models.Session)
+		buildStubs    func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken)
 		user          models.User
 		createdUser   func(user models.User, uid uuid.UUID, token string) *models.UserWithToken
-		sess          func(uid uuid.UUID) *models.Session
 		checkResponse func(recorder *httptest.ResponseRecorder, createdUser *models.UserWithToken)
 	}{
 		{
 			"StatusCreated",
-			func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken, sess *models.Session) {
+			func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken) {
 				mockAuthUC.EXPECT().Register(ctxWithTrace, gomock.Eq(user)).Return(createdUser, nil)
-				mockSessUC.EXPECT().CreateSession(ctxWithTrace, gomock.Eq(sess), 10).Return(utils.RandomString(10), nil)
 			},
 			user,
 			func(user models.User, uid uuid.UUID, token string) *models.UserWithToken {
 				return utils.BuildUserWithToken(user, uid, token)
-			},
-			func(uid uuid.UUID) *models.Session {
-				return &models.Session{
-					UserID: uid,
-				}
 			},
 			func(recorder *httptest.ResponseRecorder, createdUser *models.UserWithToken) {
 				require.Equal(t, http.StatusCreated, recorder.Code)
@@ -134,34 +126,12 @@ func TestAuthHandlers_Register2(t *testing.T) {
 			},
 		},
 		{
-			"StatusInternalServerError_ErrCreateSession",
-			func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken, sess *models.Session) {
-				mockAuthUC.EXPECT().Register(ctxWithTrace, gomock.Eq(user)).Return(createdUser, nil)
-				mockSessUC.EXPECT().CreateSession(ctxWithTrace, gomock.Eq(sess), 10).Return("", errors.New("ErrCreateSession"))
-			},
-			user,
-			func(user models.User, uid uuid.UUID, token string) *models.UserWithToken {
-				return utils.BuildUserWithToken(user, uid, token)
-			},
-			func(uid uuid.UUID) *models.Session {
-				return &models.Session{
-					UserID: uid,
-				}
-			},
-			func(recorder *httptest.ResponseRecorder, createdUser *models.UserWithToken) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
-			},
-		},
-		{
 			"StatusBadRequest_ErrEmailAlreadyExists",
-			func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken, sess *models.Session) {
+			func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken) {
 				mockAuthUC.EXPECT().Register(ctxWithTrace, gomock.Eq(user)).Return(nil, httpErrors.NewRestErrorWithMessage(http.StatusBadRequest, httpErrors.ErrEmailAlreadyExists, nil))
 			},
 			user,
 			func(user models.User, uid uuid.UUID, token string) *models.UserWithToken {
-				return nil
-			},
-			func(uid uuid.UUID) *models.Session {
 				return nil
 			},
 			func(recorder *httptest.ResponseRecorder, createdUser *models.UserWithToken) {
@@ -170,13 +140,10 @@ func TestAuthHandlers_Register2(t *testing.T) {
 		},
 		{
 			"StatusBadRequest_ErrFieldValidation_InvalidEmail",
-			func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken, sess *models.Session) {
+			func(mockAuthUC *mock.MockUseCase, mockSessUC *mockSess.MockUCSession, ctxWithTrace context.Context, user *models.User, createdUser *models.UserWithToken) {
 			},
 			userWithWrongFormatEmail,
 			func(user models.User, uid uuid.UUID, token string) *models.UserWithToken {
-				return nil
-			},
-			func(uid uuid.UUID) *models.Session {
 				return nil
 			},
 			func(recorder *httptest.ResponseRecorder, createdUser *models.UserWithToken) {
@@ -209,7 +176,7 @@ func TestAuthHandlers_Register2(t *testing.T) {
 			span, ctxWithTrace := opentracing.StartSpanFromContext(ctx, "auth.Register")
 			defer span.Finish()
 			createdUser := tc.createdUser(user, uid, token)
-			tc.buildStubs(mockAuthUC, mockSessUC, ctxWithTrace, &user, createdUser, tc.sess(uid))
+			tc.buildStubs(mockAuthUC, mockSessUC, ctxWithTrace, &user, createdUser)
 
 			handlerFunc := authHandlers.Register()
 			err = handlerFunc(c)

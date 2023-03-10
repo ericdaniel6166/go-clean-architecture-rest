@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
@@ -43,12 +42,16 @@ func (h *authHandlers) GetCSRFToken() echo.HandlerFunc {
 		span, _ := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "authHandlers.GetCSRFToken")
 		defer span.Finish()
 
-		sid, ok := c.Get("sid").(string)
+		//sid, ok := c.Get("sid").(string)
+		user, ok := c.Get("user").(*models.User)
 		if !ok {
 			return utils.ErrResponseWithLog(c, h.logger, httpErrors.NewUnauthorizedError(httpErrors.Unauthorized))
 		}
-		h.logger.Infof("GetCSRFToken, RequestID: %s, sid: %s", utils.GetRequestID(c), sid)
-		token := csrf.MakeToken(sid, h.logger)
+		//h.logger.Infof("GetCSRFToken, RequestID: %s, sid: %s", utils.GetRequestID(c), sid)
+		//token := csrf.MakeToken(sid, h.logger)
+		uid := user.UserID
+		h.logger.Infof("GetCSRFToken, RequestID: %s, uid: %s", utils.GetRequestID(c), uid)
+		token := csrf.MakeToken(uid.String(), h.logger)
 		h.logger.Infof("GetCSRFToken, RequestID: %s, token: %s", utils.GetRequestID(c), token)
 		c.Response().Header().Set(csrf.CSRFHeader, token)
 		c.Response().Header().Set("Access-Control-Expose-Headers", csrf.CSRFHeader)
@@ -83,11 +86,11 @@ func (h *authHandlers) Register() echo.HandlerFunc {
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
-		err = h.handleSession(c, ctx, createdUser.User.UserID)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
+		//err = h.handleSession(c, ctx, createdUser.User.UserID)
+		//if err != nil {
+		//	utils.LogResponseError(c, h.logger, err)
+		//	return c.JSON(httpErrors.ErrorResponse(err))
+		//}
 
 		return c.JSON(http.StatusCreated, createdUser)
 	}
@@ -125,30 +128,30 @@ func (h *authHandlers) Login() echo.HandlerFunc {
 			return c.JSON(httpErrors.ErrorResponse(err))
 		}
 
-		err = h.handleSession(c, ctx, userWithToken.User.UserID)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
+		//err = h.handleSession(c, ctx, userWithToken.User.UserID)
+		//if err != nil {
+		//	utils.LogResponseError(c, h.logger, err)
+		//	return c.JSON(httpErrors.ErrorResponse(err))
+		//}
 
 		return c.JSON(http.StatusOK, userWithToken)
 	}
 }
 
-func (h *authHandlers) handleSession(c echo.Context, ctx context.Context, userID uuid.UUID) error {
-	sess, err := h.sessUC.CreateSession(ctx, &models.Session{
-		UserID: userID,
-	}, h.cfg.Session.Expire)
-	if err != nil {
-		return err
-	}
-	h.logger.Infof("session created, RequestID: %s, sess: %s", utils.GetRequestID(c), sess)
-
-	sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
-	c.SetCookie(sessionCookie)
-	h.logger.Infof("set sessionCookie in the context, RequestID: %s, sessionCookie: %s", utils.GetRequestID(c), sessionCookie)
-	return nil
-}
+//func (h *authHandlers) handleSession(c echo.Context, ctx context.Context, userID uuid.UUID) error {
+//	sess, err := h.sessUC.CreateSession(ctx, &models.Session{
+//		UserID: userID,
+//	}, h.cfg.Session.Expire)
+//	if err != nil {
+//		return err
+//	}
+//	h.logger.Infof("session created, RequestID: %s, sess: %s", utils.GetRequestID(c), sess)
+//
+//	sessionCookie := utils.CreateSessionCookie(h.cfg, sess)
+//	c.SetCookie(sessionCookie)
+//	h.logger.Infof("set sessionCookie in the context, RequestID: %s, sessionCookie: %s", utils.GetRequestID(c), sessionCookie)
+//	return nil
+//}
 
 // GetMe godoc
 // @Summary Get current user
